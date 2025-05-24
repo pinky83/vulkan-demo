@@ -1,0 +1,9 @@
+[package]
+name = "triangle"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+vulkano = "0.33"
+vulkano-shaders = "0.33"
+winit = "0.28"
