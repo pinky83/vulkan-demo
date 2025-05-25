@@ -27,7 +27,9 @@ vulkano::impl_vertex!(Vertex, position);
 
 fn main() {
     let vulkan_device = VulkanDevice::new();
+
     let window_context = WindowContext::new(vulkan_device.instance.clone());
+
     let swapchain_context =
         SwapchainContext::new(window_context.surface, vulkan_device.device.clone());
 
@@ -67,6 +69,7 @@ fn main() {
     );
 
     let pipeline = create_pipeline(vulkan_device.device.clone(), render_pass.clone());
+
     let framebuffers: Vec<_> = create_framebuffers(render_pass, &swapchain_context);
 
     let dimensions = swapchain_context.swapchain.create_info().image_extent;
