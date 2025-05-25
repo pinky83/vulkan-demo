@@ -1,3 +1,6 @@
+use renderer::framebuffers::create_framebuffers;
+use renderer::pipeline::create_pipeline;
+use renderer::render_pass::create_render_pass;
 use renderer::swapchain::SwapchainContext;
 use renderer::window::WindowContext;
 use std::sync::Arc;
@@ -6,13 +9,8 @@ use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
     AutoCommandBufferBuilder, CommandBufferUsage, RenderPassBeginInfo, SubpassContents,
 };
-use vulkano::image::view::ImageView;
 use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator};
-use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
-use vulkano::pipeline::graphics::vertex_input::BuffersDefinition;
-use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
-use vulkano::pipeline::GraphicsPipeline;
-use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, Subpass};
+use vulkano::pipeline::graphics::viewport::Viewport;
 use vulkano::swapchain::{acquire_next_image, SwapchainPresentInfo};
 use vulkano::sync::{self, GpuFuture};
 
@@ -63,65 +61,13 @@ fn main() {
     )
     .unwrap();
 
-    mod vs {
-        vulkano_shaders::shader! {
-            ty: "vertex",
-            path: "shaders/triangle.vert",
-        }
-    }
-
-    mod fs {
-        vulkano_shaders::shader! {
-            ty: "fragment",
-            path: "shaders/triangle.frag",
-        }
-    }
-
-    let vs = vs::load(vulkan_device.device.clone()).unwrap();
-    let fs = fs::load(vulkan_device.device.clone()).unwrap();
-
-    let render_pass = vulkano::single_pass_renderpass!(
+    let render_pass = create_render_pass(
         vulkan_device.device.clone(),
-        attachments: {
-            color: {
-                load: Clear,
-                store: Store,
-                format: swapchain_context.swapchain.image_format(),
-                samples: 1,
-            }
-        },
-        pass: {
-            color: [color],
-            depth_stencil: {}
-        }
-    )
-    .unwrap();
+        swapchain_context.swapchain.image_format(),
+    );
 
-    let pipeline = GraphicsPipeline::start()
-        .vertex_input_state(BuffersDefinition::new().vertex::<Vertex>())
-        .vertex_shader(vs.entry_point("main").unwrap(), ())
-        .input_assembly_state(InputAssemblyState::new())
-        .viewport_state(ViewportState::viewport_dynamic_scissor_irrelevant())
-        .fragment_shader(fs.entry_point("main").unwrap(), ())
-        .render_pass(Subpass::from(render_pass.clone(), 0).unwrap())
-        .build(vulkan_device.device.clone())
-        .unwrap();
-
-    let framebuffers: Vec<_> = swapchain_context
-        .images
-        .iter()
-        .map(|image| {
-            let view = ImageView::new_default(image.clone()).unwrap();
-            Framebuffer::new(
-                render_pass.clone(),
-                FramebufferCreateInfo {
-                    attachments: vec![view],
-                    ..Default::default()
-                },
-            )
-            .unwrap()
-        })
-        .collect();
+    let pipeline = create_pipeline(vulkan_device.device.clone(), render_pass.clone());
+    let framebuffers: Vec<_> = create_framebuffers(render_pass, &swapchain_context);
 
     let dimensions = swapchain_context.swapchain.create_info().image_extent;
 
